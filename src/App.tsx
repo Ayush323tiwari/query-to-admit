@@ -69,6 +69,11 @@ const App = () => (
                   <div>Student Enquiries Page</div>
                 </ProtectedRoute>
               } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <div>User Profile Page</div>
+                </ProtectedRoute>
+              } />
 
               {/* Counselor Routes */}
               <Route path="/counselor/dashboard" element={
@@ -98,6 +103,16 @@ const App = () => (
                   <AdminDashboardPage />
                 </ProtectedRoute>
               } />
+              <Route path="/admin/enquiries" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <div>Admin Enquiries Management</div>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/enrollments" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <div>Admin Enrollments Management</div>
+                </ProtectedRoute>
+              } />
               <Route path="/admin/users" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <div>User Management</div>
@@ -108,16 +123,24 @@ const App = () => (
                   <div>Admissions Management</div>
                 </ProtectedRoute>
               } />
+              <Route path="/admin/payments" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <div>Payment Management</div>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/courses" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <div>Course Management</div>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/notifications" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <div>Notification Management</div>
+                </ProtectedRoute>
+              } />
               <Route path="/admin/settings" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <div>System Settings</div>
-                </ProtectedRoute>
-              } />
-
-              {/* Shared Protected Routes */}
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <div>User Profile Page</div>
                 </ProtectedRoute>
               } />
             </Route>
