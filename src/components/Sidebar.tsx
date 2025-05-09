@@ -43,23 +43,23 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   ];
 
   const counselorLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: Home },
-    { to: "/enquiries", label: "Enquiries", icon: MessageSquare },
-    { to: "/enrollments", label: "Enrollments", icon: FileText },
-    { to: "/followups", label: "Follow-ups", icon: CheckSquare },
+    { to: "/counselor/dashboard", label: "Dashboard", icon: Home },
+    { to: "/counselor/enquiries", label: "Enquiries", icon: MessageSquare },
+    { to: "/counselor/enrollments", label: "Enrollments", icon: FileText },
+    { to: "/counselor/followups", label: "Follow-ups", icon: CheckSquare },
     { to: "/profile", label: "Profile", icon: User },
   ];
 
   const adminLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: Home },
-    { to: "/enquiries", label: "Enquiries", icon: MessageSquare },
-    { to: "/enrollments", label: "Enrollments", icon: FileText },
-    { to: "/admissions", label: "Admissions", icon: CheckSquare },
-    { to: "/payments", label: "Payments", icon: CreditCard },
-    { to: "/users", label: "Users", icon: Users },
-    { to: "/courses", label: "Courses", icon: BookOpen },
-    { to: "/notifications", label: "Notifications", icon: BellDot },
-    { to: "/settings", label: "Settings", icon: Settings },
+    { to: "/admin/dashboard", label: "Dashboard", icon: Home },
+    { to: "/admin/enquiries", label: "Enquiries", icon: MessageSquare },
+    { to: "/admin/enrollments", label: "Enrollments", icon: FileText },
+    { to: "/admin/admissions", label: "Admissions", icon: CheckSquare },
+    { to: "/admin/payments", label: "Payments", icon: CreditCard },
+    { to: "/admin/users", label: "Users", icon: Users },
+    { to: "/admin/courses", label: "Courses", icon: BookOpen },
+    { to: "/admin/notifications", label: "Notifications", icon: BellDot },
+    { to: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
   let links;

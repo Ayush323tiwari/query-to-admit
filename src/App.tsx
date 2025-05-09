@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth-context";
 
 // Layout Components
@@ -71,44 +71,44 @@ const App = () => (
               } />
 
               {/* Counselor Routes */}
-              <Route path="/dashboard" element={
+              <Route path="/counselor/dashboard" element={
                 <ProtectedRoute allowedRoles={["counselor"]}>
                   <CounselorDashboardPage />
                 </ProtectedRoute>
               } />
-              <Route path="/enquiries" element={
+              <Route path="/counselor/enquiries" element={
                 <ProtectedRoute allowedRoles={["counselor"]}>
                   <div>Counselor Enquiries Management</div>
                 </ProtectedRoute>
               } />
-              <Route path="/enrollments" element={
+              <Route path="/counselor/enrollments" element={
                 <ProtectedRoute allowedRoles={["counselor"]}>
                   <div>Counselor Enrollments Management</div>
                 </ProtectedRoute>
               } />
-              <Route path="/followups" element={
+              <Route path="/counselor/followups" element={
                 <ProtectedRoute allowedRoles={["counselor"]}>
                   <div>Follow-up Management</div>
                 </ProtectedRoute>
               } />
 
               {/* Admin Routes */}
-              <Route path="/dashboard" element={
+              <Route path="/admin/dashboard" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminDashboardPage />
                 </ProtectedRoute>
               } />
-              <Route path="/users" element={
+              <Route path="/admin/users" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <div>User Management</div>
                 </ProtectedRoute>
               } />
-              <Route path="/admissions" element={
+              <Route path="/admin/admissions" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <div>Admissions Management</div>
                 </ProtectedRoute>
               } />
-              <Route path="/settings" element={
+              <Route path="/admin/settings" element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <div>System Settings</div>
                 </ProtectedRoute>

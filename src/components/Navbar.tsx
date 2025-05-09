@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { LogOut, Menu, Bell, X } from "lucide-react";
+import { LogOut, Menu, Bell, X, LogIn } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,7 +82,10 @@ const Navbar: React.FC = () => {
     return (
       <div className="hidden md:flex gap-4">
         <Link to="/login">
-          <Button variant="outline">Log in</Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <LogIn size={18} />
+            Log in
+          </Button>
         </Link>
         <Link to="/register">
           <Button>Register</Button>
@@ -147,7 +150,10 @@ const Navbar: React.FC = () => {
                   {!user && (
                     <>
                       <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Button variant="outline" className="w-full">Log in</Button>
+                        <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                          <LogIn size={18} />
+                          Log in
+                        </Button>
                       </Link>
                       <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button className="w-full">Register</Button>

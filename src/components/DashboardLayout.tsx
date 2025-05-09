@@ -12,7 +12,16 @@ const DashboardLayout = () => {
   // Handle dashboard redirection based on user role
   if (user && location.pathname === "/dashboard") {
     // Redirect to the appropriate dashboard based on user role
-    return <Navigate to={`/dashboard`} replace />;
+    if (user.role === "counselor") {
+      return <Navigate to="/counselor/dashboard" replace />;
+    } else if (user.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+  }
+
+  // If user is not authenticated, redirect to login
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   return (
