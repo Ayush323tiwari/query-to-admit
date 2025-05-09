@@ -1,13 +1,18 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
-import { Shield } from "lucide-react";
+import { Shield, ArrowLeft, LogOut, Home } from "lucide-react";
 
 const UnauthorizedPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+  
+  // Get information about why access was denied
+  const from = location.state?.from || "/";
+  const allowedRoles = location.state?.allowedRoles || [];
 
   const handleLogout = () => {
     logout();
@@ -21,27 +26,44 @@ const UnauthorizedPage = () => {
           <Shield className="h-8 w-8 text-red-600" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-        <p className="text-muted-foreground mb-6">
-          You don't have permission to access this page. Please contact an administrator if you believe this is an error.
-        </p>
+        <div className="text-muted-foreground mb-6">
+          <p className="mb-2">
+            You don't have permission to access this page. This area requires a{" "}
+            {allowedRoles.length === 1 ? (
+              <span className="font-medium text-primary">{allowedRoles[0]}</span>
+            ) : (
+              <span className="font-medium text-primary">
+                {allowedRoles.slice(0, -1).join(", ")} or {allowedRoles[allowedRoles.length - 1]}
+              </span>
+            )}{" "}
+            role.
+          </p>
+          <p>
+            Your current role is{" "}
+            <span className="font-medium">{user?.role || "unknown"}</span>.
+          </p>
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-center">
           <Button 
             variant="outline" 
             onClick={() => navigate(-1)}
+            className="flex items-center"
           >
-            Go Back
+            <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
           </Button>
           <Button 
             onClick={() => navigate("/")}
+            className="flex items-center"
           >
-            Go to Home
+            <Home className="w-4 h-4 mr-2" /> Go to Home
           </Button>
           {user && (
             <Button 
               variant="ghost"
               onClick={handleLogout}
+              className="flex items-center"
             >
-              Logout
+              <LogOut className="w-4 h-4 mr-2" /> Logout
             </Button>
           )}
         </div>
