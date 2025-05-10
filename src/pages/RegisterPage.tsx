@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +20,7 @@ const RegisterPage = () => {
     role: "student" as const,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const { register, loading } = useAuth();
+  const { register, loading, isConfigured } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (
@@ -58,6 +59,20 @@ const RegisterPage = () => {
             Create an account to get started
           </CardDescription>
         </CardHeader>
+        
+        {!isConfigured && (
+          <CardContent className="pt-0">
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Configuration Error</AlertTitle>
+              <AlertDescription>
+                Supabase is not properly configured. Please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+                environment variables.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -143,7 +158,7 @@ const RegisterPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading}
+              disabled={loading || !isConfigured}
             >
               {loading ? "Registering..." : "Register"}
             </Button>

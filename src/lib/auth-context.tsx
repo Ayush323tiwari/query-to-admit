@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { User, UserRole } from "./types";
 import { toast } from "@/components/ui/sonner";
-import { supabase } from "./supabase";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
+  isConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,11 +18,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isConfigured, setIsConfigured] = useState<boolean>(false);
 
   // Check for active session on mount
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // Check if Supabase is properly configured
+        if (!isSupabaseConfigured()) {
+          console.warn('Supabase is not properly configured. Using development mode.');
+          setLoading(false);
+          setIsConfigured(false);
+          return;
+        }
+
+        setIsConfigured(true);
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -49,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: userData.name || userData.full_name || session.user.email?.split('@')[0] || '',
               email: session.user.email!,
               role: userData.role as UserRole,
-              avatar: userData.avatar_url
+              avatar: userData.avatar_url,
+              phone: userData.phone,
+              address: userData.address
             });
           }
         }
@@ -83,7 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: userData.name || userData.full_name || currentSession.user.email?.split('@')[0] || '',
             email: currentSession.user.email!,
             role: userData.role as UserRole,
-            avatar: userData.avatar_url
+            avatar: userData.avatar_url,
+            phone: userData.phone,
+            address: userData.address
           });
         }
       } else {
@@ -99,6 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login with Supabase auth
   const login = async (email: string, password: string) => {
     setLoading(true);
+    
+    if (!isSupabaseConfigured()) {
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      setLoading(false);
+      return false;
+    }
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -130,6 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setLoading(true);
     
+    if (!isSupabaseConfigured()) {
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -149,6 +177,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string, role: UserRole) => {
     setLoading(true);
+    
+    if (!isSupabaseConfigured()) {
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      setLoading(false);
+      return false;
+    }
     
     try {
       // Register with Supabase Auth
@@ -206,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, isConfigured }}>
       {children}
     </AuthContext.Provider>
   );
