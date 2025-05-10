@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { Enquiry, Enrollment, Payment, Course, User } from './types';
+import { Enquiry, Enrollment, Payment, Course, User, EnquiryStatus } from './types';
 
 // User related API calls
 export const fetchUserProfile = async (userId: string) => {

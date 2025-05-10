@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { fetchEnquiries, createEnquiry } from "@/lib/api";
-import { Enquiry } from "@/lib/types";
+import { Enquiry, EnquiryStatus } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,7 @@ const StudentEnquiriesPage = () => {
         contact: data.contact,
         course: data.course,
         message: data.message,
-        status: "pending",
+        status: "pending" as EnquiryStatus,
         createdAt: new Date().toISOString(),
       };
       
