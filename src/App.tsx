@@ -26,6 +26,8 @@ import CounselorDashboardPage from "./pages/CounselorDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import EnrollmentPage from "./pages/EnrollmentPage";
 import PaymentPage from "./pages/PaymentPage";
+import StudentEnquiriesPage from "./pages/StudentEnquiriesPage";
+import UserProfilePage from "./pages/UserProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -66,12 +68,12 @@ const App = () => (
               } />
               <Route path="/enquiries" element={
                 <ProtectedRoute allowedRoles={["student"]}>
-                  <div>Student Enquiries Page</div>
+                  <StudentEnquiriesPage />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
                 <ProtectedRoute>
-                  <div>User Profile Page</div>
+                  <UserProfilePage />
                 </ProtectedRoute>
               } />
 
