@@ -3,10 +3,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import SupabaseSetupGuide from "@/components/SupabaseSetupGuide";
 
 const HomePage = () => {
-  const { user, isConfigured } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,20 +38,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Supabase Setup Guide (if not configured) */}
-      {!isConfigured && (
-        <div className="container mx-auto px-4 py-12">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
-            <h2 className="text-2xl font-bold text-amber-800 mb-2">⚠️ Configuration Required</h2>
-            <p className="text-amber-700">
-              This application requires Supabase to be properly configured. 
-              Please follow the setup guide below to continue.
-            </p>
-          </div>
-          <SupabaseSetupGuide />
-        </div>
-      )}
-
       {/* Features Section */}
       <div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
@@ -79,6 +64,56 @@ const HomePage = () => {
             </p>
           </div>
         </div>
+      </div>
+      
+      {/* Testimonials Section */}
+      <div className="bg-primary/5 py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <p className="italic text-gray-600 mb-4">
+                "This platform has transformed our admission process. We've reduced
+                processing time by 60% and improved applicant satisfaction significantly."
+              </p>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
+                  JD
+                </div>
+                <div className="ml-4">
+                  <p className="font-semibold">John Doe</p>
+                  <p className="text-sm text-gray-500">Admissions Director, ABC University</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <p className="italic text-gray-600 mb-4">
+                "The intuitive interface makes managing applications so simple. 
+                Our staff required minimal training and students love how easy it is to apply."
+              </p>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
+                  MS
+                </div>
+                <div className="ml-4">
+                  <p className="font-semibold">Mary Smith</p>
+                  <p className="text-sm text-gray-500">Dean of Admissions, XYZ College</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Call to Action */}
+      <div className="container mx-auto px-4 py-16 text-center">
+        <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Admissions Process?</h2>
+        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          Join hundreds of educational institutions already using our platform to streamline their operations.
+        </p>
+        <Button asChild size="lg">
+          <Link to="/register">Get Started Today</Link>
+        </Button>
       </div>
     </div>
   );

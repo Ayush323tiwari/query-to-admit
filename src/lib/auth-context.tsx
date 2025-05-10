@@ -212,8 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               id: data.user.id,
               name,
               email,
-              role,
-              created_at: new Date()
+              role
             }
           ]);
         
