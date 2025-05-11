@@ -28,12 +28,29 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ className }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
-  if (!user) return null;
+  if (!user) {
+    // If no user is logged in, redirect to login
+    setTimeout(() => navigate('/login'), 100);
+    return null;
+  }
+
+  // Determine base path for proper routing
+  const getBasePath = () => {
+    switch (user.role) {
+      case "admin":
+        return "/admin";
+      case "counselor":
+        return "/counselor";
+      case "student":
+      default:
+        return "";
+    }
+  };
 
   const studentLinks = [
     { to: "/dashboard", label: "Dashboard", icon: Home },
@@ -75,19 +92,24 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       links = adminLinks;
       break;
     default:
-      links = [];
+      links = studentLinks;
   }
 
   const handleLinkClick = (path: string) => {
     navigate(path);
     setIsMobileOpen(false);
   };
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const SidebarContent = () => (
     <div className={cn("h-screen flex flex-col gap-2 p-4 bg-primary text-primary-foreground", className)}>
       <div className="font-bold text-xl mb-6 px-2">EduAdmit</div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 flex-grow">
         {links.map((link) => (
           <NavLink
             key={link.to}
@@ -106,6 +128,25 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             {link.label}
           </NavLink>
         ))}
+      </div>
+      
+      <div className="mt-auto pt-4">
+        <Button 
+          variant="outline" 
+          className="w-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+        {user && (
+          <div className="flex items-center gap-3 px-4 py-3 mt-2 rounded-md bg-white/5 text-sm">
+            <User size={18} />
+            <div className="truncate">
+              <div className="font-medium">{user.name}</div>
+              <div className="text-xs opacity-70">{user.role}</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

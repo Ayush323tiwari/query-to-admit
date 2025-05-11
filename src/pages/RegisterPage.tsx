@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, Info } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -22,6 +22,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { register, loading, isConfigured } = useAuth();
   const navigate = useNavigate();
+  const [registering, setRegistering] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -32,9 +33,17 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setRegistering(true);
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
+      setRegistering(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      setRegistering(false);
       return;
     }
 
@@ -46,7 +55,12 @@ const RegisterPage = () => {
     );
 
     if (success) {
-      navigate("/login");
+      toast.success("Registration successful! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } else {
+      setRegistering(false);
     }
   };
 
@@ -66,12 +80,18 @@ const RegisterPage = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration Error</AlertTitle>
               <AlertDescription>
-                Supabase is not properly configured. Please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-                environment variables.
+                Supabase is not properly configured. Please check your .env file and ensure the environment variables are set correctly.
               </AlertDescription>
             </Alert>
           </CardContent>
         )}
+        
+        <Alert className="mx-4 mb-4">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Default admin account: admin@querytoadmit.com
+          </AlertDescription>
+        </Alert>
         
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -158,9 +178,9 @@ const RegisterPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading || !isConfigured}
+              disabled={loading || registering || !isConfigured}
             >
-              {loading ? "Registering..." : "Register"}
+              {loading || registering ? "Registering..." : "Register"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}

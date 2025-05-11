@@ -44,29 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (session) {
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (userError) {
-            console.error('Error fetching user data:', userError);
-            setLoading(false);
-            return;
-          }
-
-          if (userData) {
-            setUser({
-              id: userData.id,
-              name: userData.name || userData.full_name || session.user.email?.split('@')[0] || '',
-              email: session.user.email!,
-              role: userData.role as UserRole,
-              avatar: userData.avatar_url,
-              phone: userData.phone,
-              address: userData.address
-            });
-          }
+          await fetchAndSetUserData(session.user.id);
         }
       } catch (err) {
         console.error('Session check error:', err);
@@ -80,29 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (currentSession) {
-        // Fetch user profile data
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single();
-        
-        if (userError) {
-          console.error('Error fetching user data on auth change:', userError);
-          return;
-        }
-
-        if (userData) {
-          setUser({
-            id: userData.id,
-            name: userData.name || userData.full_name || currentSession.user.email?.split('@')[0] || '',
-            email: currentSession.user.email!,
-            role: userData.role as UserRole,
-            avatar: userData.avatar_url,
-            phone: userData.phone,
-            address: userData.address
-          });
-        }
+        await fetchAndSetUserData(currentSession.user.id);
       } else {
         setUser(null);
       }
@@ -113,72 +69,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Login with Supabase auth - Modified to work with unconfirmed emails
+  // Helper function to fetch user data
+  const fetchAndSetUserData = async (userId: string) => {
+    try {
+      // First check if the user exists in our users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        // Try to get auth user data as fallback
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          // Create missing user record
+          await createUserRecord(authUser);
+          return;
+        }
+        return;
+      }
+
+      if (userData) {
+        // Get email from auth
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        setUser({
+          id: userData.id,
+          name: userData.name || '',
+          email: authUser?.email || '',
+          role: userData.role as UserRole,
+          avatar: userData.avatar_url,
+          phone: userData.phone,
+          address: userData.address
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching and setting user data:', err);
+    }
+  };
+
+  // Helper function to create user record if missing
+  const createUserRecord = async (authUser: any) => {
+    if (!authUser) return;
+    
+    try {
+      const userMetadata = authUser.user_metadata || {};
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert([
+          { 
+            id: authUser.id,
+            name: userMetadata.name || authUser.email?.split('@')[0] || '',
+            email: authUser.email,
+            role: userMetadata.role || 'student'
+          }
+        ]);
+      
+      if (error) {
+        console.error('Error creating user record:', error);
+        return;
+      }
+      
+      // Fetch the user data again to update the state
+      await fetchAndSetUserData(authUser.id);
+      
+    } catch (err) {
+      console.error('Error creating user record:', err);
+    }
+  };
+
+  // Login with Supabase auth
   const login = async (email: string, password: string) => {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      toast.error('Supabase is not configured. Set environment variables.');
       setLoading(false);
       return false;
     }
     
     try {
-      // First try normal login
+      // Sign in with email/password
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
-        // If error is "Email not confirmed", try to automatically confirm and login
-        if (error.message === 'Email not confirmed') {
-          console.log('Email not confirmed, trying to auto-confirm...');
-          
-          // Try to fetch user data directly from the users table
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .single();
-            
-          if (userError) {
-            toast.error('Login failed: ' + error.message);
-            setLoading(false);
-            return false;
-          }
-          
-          if (userData) {
-            // Try signing in again - this might work in development mode or if confirmation requirements are disabled
-            const { data: secondAttempt, error: secondError } = await supabase.auth.signInWithPassword({
-              email,
-              password
-            });
-            
-            if (secondError) {
-              toast.error('Login failed: ' + secondError.message);
-              console.error('Second login attempt failed:', secondError);
-              setLoading(false);
-              return false;
-            }
-            
-            if (secondAttempt.user) {
-              toast.success(`Welcome back!`);
-              return true;
-            }
-          }
-          
-          toast.error('Login failed: Email confirmation required. Please check your email.');
-          setLoading(false);
-          return false;
-        }
-        
         toast.error('Login failed: ' + error.message);
         setLoading(false);
         return false;
       }
       
       if (data.user) {
+        // Check if user exists in users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        
+        // If user doesn't exist in the users table, create the record
+        if (!userData || userError) {
+          await createUserRecord(data.user);
+        }
+        
+        // Fetch user data to set state
+        await fetchAndSetUserData(data.user.id);
+        
         toast.success(`Welcome back!`);
         return true;
       }
@@ -197,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      toast.error('Supabase is not configured. Set environment variables.');
       setLoading(false);
       return;
     }
@@ -223,13 +224,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      toast.error('Supabase is not configured. Set environment variables.');
       setLoading(false);
       return false;
     }
     
     try {
-      // Register with Supabase Auth with autoconfirm enabled
+      // Register with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -263,13 +264,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (profileError) {
           console.error('Error creating user profile:', profileError);
-          toast.error('Account created but profile setup failed. Please contact support.');
-          setLoading(false);
-          return true; // Still return true as auth account was created
+          toast.error('Account created but profile setup failed. Please try logging in.');
+        } else {
+          toast.success("Registration successful! You can now log in.");
         }
         
-        toast.success("Registration successful! You can now log in.");
-        setLoading(false);
+        // Sign out after registration so they can log in properly
+        await supabase.auth.signOut();
         return true;
       }
       
@@ -283,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Function to create an admin user if none exists - kept for API completeness
+  // Function to create an admin user if none exists
   const createAdminIfNotExists = async () => {
     if (!isSupabaseConfigured()) {
       return;
@@ -292,7 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Use the database function to create an admin if none exists
       await supabase.rpc('create_admin_if_not_exists');
-      toast.success('Admin user check completed');
+      console.log('Admin user check completed');
     } catch (err) {
       console.error('Admin creation check error:', err);
     }

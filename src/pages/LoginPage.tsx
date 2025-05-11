@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/components/ui/sonner";
 
@@ -16,6 +16,16 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading, isConfigured } = useAuth();
   const navigate = useNavigate();
+  const [showSupabaseTip, setShowSupabaseTip] = useState(false);
+
+  useEffect(() => {
+    // Check if the user has seen the Supabase tip before
+    const hasSeenTip = localStorage.getItem("hasSeenSupabaseTip");
+    if (!hasSeenTip) {
+      setShowSupabaseTip(true);
+      localStorage.setItem("hasSeenSupabaseTip", "true");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,7 +36,11 @@ const LoginPage = () => {
 
     const success = await login(email, password);
     if (success) {
-      navigate("/dashboard");
+      if (email === "admin@querytoadmit.com") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -46,9 +60,28 @@ const LoginPage = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration Error</AlertTitle>
               <AlertDescription>
-                Supabase is not properly configured. Please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-                environment variables.
+                Supabase is not properly configured. Please check your .env file and ensure the environment variables are set correctly.
               </AlertDescription>
+            </Alert>
+          </CardContent>
+        )}
+        
+        {showSupabaseTip && (
+          <CardContent className="pt-0">
+            <Alert className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Supabase Email Confirmation</AlertTitle>
+              <AlertDescription>
+                Make sure to disable "Confirm email" in your Supabase Authentication settings for local development.
+              </AlertDescription>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => setShowSupabaseTip(false)}
+              >
+                Got it
+              </Button>
             </Alert>
           </CardContent>
         )}
@@ -64,6 +97,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -84,6 +118,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
                 <Button
                   type="button"
