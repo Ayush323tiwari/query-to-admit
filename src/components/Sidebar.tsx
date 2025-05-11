@@ -1,6 +1,6 @@
 
 import React from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { 
@@ -30,6 +30,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
   if (!user) return null;
@@ -76,6 +77,11 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     default:
       links = [];
   }
+
+  const handleLinkClick = (path: string) => {
+    navigate(path);
+    setIsMobileOpen(false);
+  };
 
   const SidebarContent = () => (
     <div className={cn("h-screen flex flex-col gap-2 p-4 bg-primary text-primary-foreground", className)}>
