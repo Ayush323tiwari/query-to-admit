@@ -15,7 +15,10 @@ const supabaseAnonKey =
 console.log('Using Supabase URL:', supabaseUrl);
 
 // Initialize Supabase client
-export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
+export const supabase = createClient(
+  supabaseUrl || '', 
+  supabaseAnonKey || ''
+);
 
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {

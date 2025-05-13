@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { User, UserRole } from "./types";
 import { toast } from "@/components/ui/sonner";
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   user: User | null;
@@ -11,7 +12,6 @@ interface AuthContextType {
   logout: () => void;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
   isConfigured: boolean;
-  createAdminIfNotExists: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -175,10 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If user doesn't exist in the users table, create the record
         if (!userData || userError) {
           await createUserRecord(data.user);
+        } else {
+          // Fetch user data to set state
+          await fetchAndSetUserData(data.user.id);
         }
-        
-        // Fetch user data to set state
-        await fetchAndSetUserData(data.user.id);
         
         toast.success(`Welcome back!`);
         return true;
@@ -284,21 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Function to create an admin user if none exists
-  const createAdminIfNotExists = async () => {
-    if (!isSupabaseConfigured()) {
-      return;
-    }
-    
-    try {
-      // Use the database function to create an admin if none exists
-      await supabase.rpc('create_admin_if_not_exists');
-      console.log('Admin user check completed');
-    } catch (err) {
-      console.error('Admin creation check error:', err);
-    }
-  };
-
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -306,8 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login, 
       logout, 
       register, 
-      isConfigured, 
-      createAdminIfNotExists 
+      isConfigured
     }}>
       {children}
     </AuthContext.Provider>

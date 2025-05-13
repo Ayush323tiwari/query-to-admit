@@ -14,10 +14,10 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading: authLoading, isConfigured } = useAuth(); // Renamed loading to authLoading for clarity
+  const { user, login, loading: authLoading, isConfigured } = useAuth();
   const navigate = useNavigate();
   const [showSupabaseTip, setShowSupabaseTip] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false); // Local state for login process
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     // Check if the user has seen the Supabase tip before
@@ -28,6 +28,20 @@ const LoginPage = () => {
     }
   }, []);
 
+  // Redirect user if already logged in
+  useEffect(() => {
+    if (user) {
+      // Redirect based on user role
+      if (user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (user.role === "counselor") {
+        navigate("/counselor/dashboard");
+      } else {
+        navigate("/dashboard"); 
+      }
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email || !password) {
@@ -35,18 +49,13 @@ const LoginPage = () => {
       return;
     }
 
-    setIsLoggingIn(true); // Start local loading
+    setIsLoggingIn(true);
     const success = await login(email, password);
-    setIsLoggingIn(false); // End local loading
+    setIsLoggingIn(false);
 
     if (success) {
-      // Navigation logic is handled by AuthProvider/ProtectedRoute now
-      // For admin, specific navigation can be added if needed after login success confirmation
-      // if (email === "admin@querytoadmit.com") { // This check might be better inside AuthProvider or based on user.role
-      //   navigate("/admin/dashboard");
-      // } else {
-      //   navigate("/dashboard"); // General dashboard redirect
-      // }
+      // Navigation is handled by the useEffect above
+      console.log("Login successful, navigation will happen via useEffect");
     }
   };
 
@@ -104,7 +113,7 @@ const LoginPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                disabled={authLoading || isLoggingIn}
+                disabled={authLoading || isLoggingIn || user !== null}
               />
             </div>
             <div className="space-y-2">
@@ -126,7 +135,7 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  disabled={authLoading || isLoggingIn}
+                  disabled={authLoading || isLoggingIn || user !== null}
                 />
                 <Button
                   type="button"
@@ -134,7 +143,7 @@ const LoginPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={authLoading || isLoggingIn}
+                  disabled={authLoading || isLoggingIn || user !== null}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -145,9 +154,9 @@ const LoginPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={authLoading || isLoggingIn || !isConfigured}
+              disabled={authLoading || isLoggingIn || !isConfigured || user !== null}
             >
-              {isLoggingIn ? "Logging in..." : "Login"}
+              {isLoggingIn ? "Logging in..." : (user ? "Redirecting..." : "Login")}
             </Button>
             <div className="text-center text-sm">
               Don't have an account?{" "}
