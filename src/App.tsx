@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,130 +31,134 @@ import UserProfilePage from "./pages/UserProfilePage";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/enquiry" element={<EnquiryPage />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+const App = () => {
+  console.log('[App.tsx] Rendering or re-rendering'); // New diagnostic log
 
-            {/* Protected Dashboard Routes */}
-            <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              {/* Student Routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <StudentDashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/enrollment" element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <EnrollmentPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/payments" element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <PaymentPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/enquiries" element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <StudentEnquiriesPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <UserProfilePage />
-                </ProtectedRoute>
-              } />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/enquiry" element={<EnquiryPage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-              {/* Counselor Routes */}
-              <Route path="/counselor/dashboard" element={
-                <ProtectedRoute allowedRoles={["counselor"]}>
-                  <CounselorDashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/counselor/enquiries" element={
-                <ProtectedRoute allowedRoles={["counselor"]}>
-                  <div>Counselor Enquiries Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/counselor/enrollments" element={
-                <ProtectedRoute allowedRoles={["counselor"]}>
-                  <div>Counselor Enrollments Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/counselor/followups" element={
-                <ProtectedRoute allowedRoles={["counselor"]}>
-                  <div>Follow-up Management</div>
-                </ProtectedRoute>
-              } />
+              {/* Protected Dashboard Routes */}
+              <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                {/* Student Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <StudentDashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/enrollment" element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <EnrollmentPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/payments" element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <PaymentPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/enquiries" element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <StudentEnquiriesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <UserProfilePage />
+                  </ProtectedRoute>
+                } />
 
-              {/* Admin Routes */}
-              <Route path="/admin/dashboard" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/enquiries" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Admin Enquiries Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/enrollments" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Admin Enrollments Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/users" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>User Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/admissions" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Admissions Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/payments" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Payment Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/courses" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Course Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/notifications" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>Notification Management</div>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/settings" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <div>System Settings</div>
-                </ProtectedRoute>
-              } />
-            </Route>
+                {/* Counselor Routes */}
+                <Route path="/counselor/dashboard" element={
+                  <ProtectedRoute allowedRoles={["counselor"]}>
+                    <CounselorDashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/counselor/enquiries" element={
+                  <ProtectedRoute allowedRoles={["counselor"]}>
+                    <div>Counselor Enquiries Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/counselor/enrollments" element={
+                  <ProtectedRoute allowedRoles={["counselor"]}>
+                    <div>Counselor Enrollments Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/counselor/followups" element={
+                  <ProtectedRoute allowedRoles={["counselor"]}>
+                    <div>Follow-up Management</div>
+                  </ProtectedRoute>
+                } />
 
-            {/* Fallback Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                {/* Admin Routes */}
+                <Route path="/admin/dashboard" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/enquiries" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Admin Enquiries Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/enrollments" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Admin Enrollments Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>User Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/admissions" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Admissions Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/payments" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Payment Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/courses" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Course Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/notifications" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>Notification Management</div>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/settings" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <div>System Settings</div>
+                  </ProtectedRoute>
+                } />
+              </Route>
+
+              {/* Fallback Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
