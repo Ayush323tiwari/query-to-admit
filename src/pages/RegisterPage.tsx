@@ -20,9 +20,9 @@ const RegisterPage = () => {
     role: "student" as const,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const { register, loading, isConfigured } = useAuth();
+  const { register, loading: authLoading, isConfigured } = useAuth(); // Renamed loading to authLoading for clarity
   const navigate = useNavigate();
-  const [registering, setRegistering] = useState(false);
+  const [registering, setRegistering] = useState(false); // Local state for registration process
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -33,19 +33,18 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setRegistering(true);
-
+    
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
-      setRegistering(false);
       return;
     }
 
     if (formData.password.length < 6) {
       toast.error("Password must be at least 6 characters");
-      setRegistering(false);
       return;
     }
+    
+    setRegistering(true); // Start local loading
 
     const success = await register(
       formData.name,
@@ -53,14 +52,14 @@ const RegisterPage = () => {
       formData.password,
       formData.role
     );
+    
+    setRegistering(false); // End local loading
 
     if (success) {
       toast.success("Registration successful! Redirecting to login...");
       setTimeout(() => {
         navigate("/login");
       }, 1500);
-    } else {
-      setRegistering(false);
     }
   };
 
@@ -104,6 +103,7 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                disabled={authLoading || registering}
               />
             </div>
             <div className="space-y-2">
@@ -116,6 +116,7 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={authLoading || registering}
               />
             </div>
             <div className="space-y-2">
@@ -129,6 +130,7 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  disabled={authLoading || registering}
                 />
                 <Button
                   type="button"
@@ -136,6 +138,7 @@ const RegisterPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={authLoading || registering}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -151,6 +154,7 @@ const RegisterPage = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                disabled={authLoading || registering}
               />
             </div>
             <div className="space-y-2">
@@ -162,6 +166,7 @@ const RegisterPage = () => {
                   setFormData((prev) => ({ ...prev, role: value as any }))
                 }
                 className="flex flex-col gap-2"
+                disabled={authLoading || registering}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="student" id="student" />
@@ -178,9 +183,9 @@ const RegisterPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading || registering || !isConfigured}
+              disabled={authLoading || registering || !isConfigured}
             >
-              {loading || registering ? "Registering..." : "Register"}
+              {registering ? "Registering..." : "Register"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}

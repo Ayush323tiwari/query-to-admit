@@ -14,9 +14,10 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading, isConfigured } = useAuth();
+  const { login, loading: authLoading, isConfigured } = useAuth(); // Renamed loading to authLoading for clarity
   const navigate = useNavigate();
   const [showSupabaseTip, setShowSupabaseTip] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // Local state for login process
 
   useEffect(() => {
     // Check if the user has seen the Supabase tip before
@@ -34,13 +35,18 @@ const LoginPage = () => {
       return;
     }
 
+    setIsLoggingIn(true); // Start local loading
     const success = await login(email, password);
+    setIsLoggingIn(false); // End local loading
+
     if (success) {
-      if (email === "admin@querytoadmit.com") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+      // Navigation logic is handled by AuthProvider/ProtectedRoute now
+      // For admin, specific navigation can be added if needed after login success confirmation
+      // if (email === "admin@querytoadmit.com") { // This check might be better inside AuthProvider or based on user.role
+      //   navigate("/admin/dashboard");
+      // } else {
+      //   navigate("/dashboard"); // General dashboard redirect
+      // }
     }
   };
 
@@ -98,6 +104,7 @@ const LoginPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                disabled={authLoading || isLoggingIn}
               />
             </div>
             <div className="space-y-2">
@@ -119,6 +126,7 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
+                  disabled={authLoading || isLoggingIn}
                 />
                 <Button
                   type="button"
@@ -126,6 +134,7 @@ const LoginPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={authLoading || isLoggingIn}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -136,9 +145,9 @@ const LoginPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading || !isConfigured}
+              disabled={authLoading || isLoggingIn || !isConfigured}
             >
-              {loading ? "Logging in..." : "Login"}
+              {isLoggingIn ? "Logging in..." : "Login"}
             </Button>
             <div className="text-center text-sm">
               Don't have an account?{" "}
