@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { User, UserRole } from "./types";
 import { toast } from "@/components/ui/sonner";
@@ -20,54 +19,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
-
-  // Check for active session on mount
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        // Check if Supabase is properly configured
-        if (!isSupabaseConfigured()) {
-          console.warn('Supabase is not properly configured. Using development mode.');
-          setLoading(false);
-          setIsConfigured(false);
-          return;
-        }
-
-        setIsConfigured(true);
-        
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
-        if (session) {
-          await fetchAndSetUserData(session.user.id);
-        }
-      } catch (err) {
-        console.error('Session check error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (currentSession) {
-        await fetchAndSetUserData(currentSession.user.id);
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   // Helper function to fetch user data
   const fetchAndSetUserData = async (userId: string) => {
@@ -141,7 +92,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Login with Supabase auth
+  useEffect(() => {
+    let isMounted = true;
+    console.log('[AuthContext] useEffect for session check mounted. Initial loading state for this effect cycle:', loading);
+
+    const performCheckSession = async () => {
+      if (!isMounted) return;
+      
+      // Explicitly set loading to true at the beginning of the check
+      // This ensures that if AuthProvider re-renders, `loading` is true during check.
+      console.log('[AuthContext] performCheckSession started. Setting loading: true');
+      setLoading(true); 
+
+      try {
+        if (!isSupabaseConfigured()) {
+          console.warn('[AuthContext] Supabase is not properly configured in performCheckSession.');
+          if (isMounted) {
+            setIsConfigured(false);
+            setUser(null);
+          }
+          return;
+        }
+        if (isMounted) {
+          setIsConfigured(true);
+        }
+        
+        console.log('[AuthContext] Checking Supabase session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[AuthContext] Error getting session:', error);
+          if (isMounted) {
+            setUser(null);
+          }
+          return;
+        }
+
+        if (session) {
+          console.log('[AuthContext] Session found. Fetching user data for user ID:', session.user.id);
+          if (isMounted) {
+            await fetchAndSetUserData(session.user.id);
+          }
+        } else {
+          console.log('[AuthContext] No active session found.');
+          if (isMounted) {
+            setUser(null);
+          }
+        }
+      } catch (err) {
+        console.error('[AuthContext] Error during performCheckSession:', err);
+        if (isMounted) {
+          setUser(null); // Ensure user is null on any unexpected error
+        }
+      } finally {
+        if (isMounted) {
+          console.log('[AuthContext] performCheckSession finished. Setting loading: false');
+          setLoading(false);
+        }
+      }
+    };
+
+    performCheckSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (!isMounted) return;
+        console.log('[AuthContext] onAuthStateChange triggered. Event:', event, 'Session:', currentSession ? 'Exists' : 'Null');
+        
+        // This callback primarily updates the user state based on auth events.
+        // It should not manage the main `loading` state tied to initial load or explicit auth ops.
+        if (currentSession) {
+          await fetchAndSetUserData(currentSession.user.id);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      console.log('[AuthContext] useEffect for session check unmounted. Subscription cancelled.');
+    };
+  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount.
+
   const login = async (email: string, password: string) => {
     setLoading(true);
     
