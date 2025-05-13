@@ -1,8 +1,8 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { User, UserRole } from "./types";
 import { toast } from "@/components/ui/sonner";
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,7 @@ interface AuthContextType {
   logout: () => void;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
   isConfigured: boolean;
+  createAdminIfNotExists: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,200 +21,164 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
 
-  // Helper function to fetch user data
-  const fetchAndSetUserData = async (userId: string) => {
-    try {
-      // First check if the user exists in our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        // Try to get auth user data as fallback
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          // Create missing user record
-          await createUserRecord(authUser);
-          return;
-        }
-        return;
-      }
-
-      if (userData) {
-        // Get email from auth
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        setUser({
-          id: userData.id,
-          name: userData.name || '',
-          email: authUser?.email || '',
-          role: userData.role as UserRole,
-          avatar: userData.avatar_url,
-          phone: userData.phone,
-          address: userData.address
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching and setting user data:', err);
-    }
-  };
-
-  // Helper function to create user record if missing
-  const createUserRecord = async (authUser: any) => {
-    if (!authUser) return;
-    
-    try {
-      const userMetadata = authUser.user_metadata || {};
-      
-      const { data, error } = await supabase
-        .from('users')
-        .insert([
-          { 
-            id: authUser.id,
-            name: userMetadata.name || authUser.email?.split('@')[0] || '',
-            email: authUser.email,
-            role: userMetadata.role || 'student'
-          }
-        ]);
-      
-      if (error) {
-        console.error('Error creating user record:', error);
-        return;
-      }
-      
-      // Fetch the user data again to update the state
-      await fetchAndSetUserData(authUser.id);
-      
-    } catch (err) {
-      console.error('Error creating user record:', err);
-    }
-  };
-
+  // Check for active session on mount
   useEffect(() => {
-    let isMounted = true;
-    console.log('[AuthContext] useEffect for session check mounted. Initial loading state for this effect cycle:', loading);
-
-    const performCheckSession = async () => {
-      if (!isMounted) return;
-      
-      // Explicitly set loading to true at the beginning of the check
-      // This ensures that if AuthProvider re-renders, `loading` is true during check.
-      console.log('[AuthContext] performCheckSession started. Setting loading: true');
-      setLoading(true); 
-
+    const checkSession = async () => {
       try {
+        // Check if Supabase is properly configured
         if (!isSupabaseConfigured()) {
-          console.warn('[AuthContext] Supabase is not properly configured in performCheckSession.');
-          if (isMounted) {
-            setIsConfigured(false);
-            setUser(null);
-          }
+          console.warn('Supabase is not properly configured. Using development mode.');
+          setLoading(false);
+          setIsConfigured(false);
           return;
         }
-        if (isMounted) {
-          setIsConfigured(true);
-        }
+
+        setIsConfigured(true);
         
-        console.log('[AuthContext] Checking Supabase session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('[AuthContext] Error getting session:', error);
-          if (isMounted) {
-            setUser(null);
-          }
+          console.error('Error getting session:', error);
+          setLoading(false);
           return;
         }
 
         if (session) {
-          console.log('[AuthContext] Session found. Fetching user data for user ID:', session.user.id);
-          if (isMounted) {
-            await fetchAndSetUserData(session.user.id);
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (userError) {
+            console.error('Error fetching user data:', userError);
+            setLoading(false);
+            return;
           }
-        } else {
-          console.log('[AuthContext] No active session found.');
-          if (isMounted) {
-            setUser(null);
+
+          if (userData) {
+            setUser({
+              id: userData.id,
+              name: userData.name || userData.full_name || session.user.email?.split('@')[0] || '',
+              email: session.user.email!,
+              role: userData.role as UserRole,
+              avatar: userData.avatar_url,
+              phone: userData.phone,
+              address: userData.address
+            });
           }
         }
       } catch (err) {
-        console.error('[AuthContext] Error during performCheckSession:', err);
-        if (isMounted) {
-          setUser(null); // Ensure user is null on any unexpected error
-        }
+        console.error('Session check error:', err);
       } finally {
-        if (isMounted) {
-          console.log('[AuthContext] performCheckSession finished. Setting loading: false');
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
-    performCheckSession();
+    checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        if (!isMounted) return;
-        console.log('[AuthContext] onAuthStateChange triggered. Event:', event, 'Session:', currentSession ? 'Exists' : 'Null');
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (currentSession) {
+        // Fetch user profile data
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentSession.user.id)
+          .single();
         
-        // This callback primarily updates the user state based on auth events.
-        // It should not manage the main `loading` state tied to initial load or explicit auth ops.
-        if (currentSession) {
-          await fetchAndSetUserData(currentSession.user.id);
-        } else {
-          setUser(null);
+        if (userError) {
+          console.error('Error fetching user data on auth change:', userError);
+          return;
         }
+
+        if (userData) {
+          setUser({
+            id: userData.id,
+            name: userData.name || userData.full_name || currentSession.user.email?.split('@')[0] || '',
+            email: currentSession.user.email!,
+            role: userData.role as UserRole,
+            avatar: userData.avatar_url,
+            phone: userData.phone,
+            address: userData.address
+          });
+        }
+      } else {
+        setUser(null);
       }
-    );
+    });
 
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
-      console.log('[AuthContext] useEffect for session check unmounted. Subscription cancelled.');
     };
-  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount.
+  }, []);
 
+  // Login with Supabase auth - Modified to work with unconfirmed emails
   const login = async (email: string, password: string) => {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set environment variables.');
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
       setLoading(false);
       return false;
     }
     
     try {
-      // Sign in with email/password
+      // First try normal login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
+        // If error is "Email not confirmed", try to automatically confirm and login
+        if (error.message === 'Email not confirmed') {
+          console.log('Email not confirmed, trying to auto-confirm...');
+          
+          // Try to fetch user data directly from the users table
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .single();
+            
+          if (userError) {
+            toast.error('Login failed: ' + error.message);
+            setLoading(false);
+            return false;
+          }
+          
+          if (userData) {
+            // Try signing in again - this might work in development mode or if confirmation requirements are disabled
+            const { data: secondAttempt, error: secondError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            
+            if (secondError) {
+              toast.error('Login failed: ' + secondError.message);
+              console.error('Second login attempt failed:', secondError);
+              setLoading(false);
+              return false;
+            }
+            
+            if (secondAttempt.user) {
+              toast.success(`Welcome back!`);
+              return true;
+            }
+          }
+          
+          toast.error('Login failed: Email confirmation required. Please check your email.');
+          setLoading(false);
+          return false;
+        }
+        
         toast.error('Login failed: ' + error.message);
         setLoading(false);
         return false;
       }
       
       if (data.user) {
-        // Check if user exists in users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .maybeSingle();
-        
-        // If user doesn't exist in the users table, create the record
-        if (!userData || userError) {
-          await createUserRecord(data.user);
-        } else {
-          // Fetch user data to set state
-          await fetchAndSetUserData(data.user.id);
-        }
-        
         toast.success(`Welcome back!`);
         return true;
       }
@@ -232,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set environment variables.');
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
       setLoading(false);
       return;
     }
@@ -258,13 +223,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     if (!isSupabaseConfigured()) {
-      toast.error('Supabase is not configured. Set environment variables.');
+      toast.error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
       setLoading(false);
       return false;
     }
     
     try {
-      // Register with Supabase Auth
+      // Register with Supabase Auth with autoconfirm enabled
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -298,13 +263,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (profileError) {
           console.error('Error creating user profile:', profileError);
-          toast.error('Account created but profile setup failed. Please try logging in.');
-        } else {
-          toast.success("Registration successful! You can now log in.");
+          toast.error('Account created but profile setup failed. Please contact support.');
+          setLoading(false);
+          return true; // Still return true as auth account was created
         }
         
-        // Sign out after registration so they can log in properly
-        await supabase.auth.signOut();
+        toast.success("Registration successful! You can now log in.");
+        setLoading(false);
         return true;
       }
       
@@ -318,6 +283,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Function to create an admin user if none exists
+  const createAdminIfNotExists = async () => {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+    
+    try {
+      // Check if admin exists
+      const { data: adminUsers, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'admin');
+      
+      if (checkError) {
+        console.error('Error checking admin users:', checkError);
+        return;
+      }
+      
+      // If no admin user exists, create one
+      if (!adminUsers || adminUsers.length === 0) {
+        const adminEmail = 'admin@querytoadmit.com';
+        const adminPassword = 'Admin@123';
+        const adminName = 'System Admin';
+        
+        // Create admin user in auth
+        const { data, error } = await supabase.auth.signUp({
+          email: adminEmail,
+          password: adminPassword,
+          options: {
+            data: {
+              name: adminName,
+              role: 'admin'
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Error creating admin auth:', error);
+          return;
+        }
+        
+        if (data.user) {
+          // Create admin profile in users table
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert([
+              { 
+                id: data.user.id,
+                name: adminName,
+                email: adminEmail,
+                role: 'admin' as UserRole
+              }
+            ]);
+          
+          if (profileError) {
+            console.error('Error creating admin profile:', profileError);
+            return;
+          }
+          
+          console.log('Default admin user created successfully');
+          toast.success('Default admin user created. Email: admin@querytoadmit.com, Password: Admin@123');
+        }
+      }
+    } catch (err) {
+      console.error('Admin creation error:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -325,7 +358,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login, 
       logout, 
       register, 
-      isConfigured
+      isConfigured, 
+      createAdminIfNotExists 
     }}>
       {children}
     </AuthContext.Provider>

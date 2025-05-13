@@ -14,33 +14,19 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { user, login, loading: authLoading, isConfigured } = useAuth();
+  const [adminCreated, setAdminCreated] = useState(false);
+  const { login, loading, isConfigured, createAdminIfNotExists } = useAuth();
   const navigate = useNavigate();
-  const [showSupabaseTip, setShowSupabaseTip] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
-    // Check if the user has seen the Supabase tip before
-    const hasSeenTip = localStorage.getItem("hasSeenSupabaseTip");
-    if (!hasSeenTip) {
-      setShowSupabaseTip(true);
-      localStorage.setItem("hasSeenSupabaseTip", "true");
+    // Check local storage to see if we've displayed the admin creation notice
+    const hasShownAdminCreation = localStorage.getItem('adminCreationNoticed');
+    if (hasShownAdminCreation !== 'true' && isConfigured) {
+      toast.info('First time here? Create an admin account to get started!', {
+        duration: 8000
+      });
     }
-  }, []);
-
-  // Redirect user if already logged in
-  useEffect(() => {
-    if (user) {
-      // Redirect based on user role
-      if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (user.role === "counselor") {
-        navigate("/counselor/dashboard");
-      } else {
-        navigate("/dashboard"); 
-      }
-    }
-  }, [user, navigate]);
+  }, [isConfigured]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,13 +35,20 @@ const LoginPage = () => {
       return;
     }
 
-    setIsLoggingIn(true);
     const success = await login(email, password);
-    setIsLoggingIn(false);
-
     if (success) {
-      // Navigation is handled by the useEffect above
-      console.log("Login successful, navigation will happen via useEffect");
+      navigate("/dashboard");
+    }
+  };
+
+  const handleCreateAdmin = async () => {
+    try {
+      await createAdminIfNotExists();
+      setAdminCreated(true);
+      localStorage.setItem('adminCreationNoticed', 'true');
+    } catch (error) {
+      console.error("Error creating admin user:", error);
+      toast.error("Failed to create admin user. Please try again.");
     }
   };
 
@@ -75,28 +68,42 @@ const LoginPage = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration Error</AlertTitle>
               <AlertDescription>
-                Supabase is not properly configured. Please check your .env file and ensure the environment variables are set correctly.
+                Supabase is not properly configured. Please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+                environment variables.
               </AlertDescription>
             </Alert>
           </CardContent>
         )}
         
-        {showSupabaseTip && (
+        {isConfigured && !adminCreated && (
           <CardContent className="pt-0">
             <Alert className="mb-4">
               <Info className="h-4 w-4" />
-              <AlertTitle>Supabase Email Confirmation</AlertTitle>
-              <AlertDescription>
-                Make sure to disable "Confirm email" in your Supabase Authentication settings for local development.
+              <AlertTitle>First time here?</AlertTitle>
+              <AlertDescription className="flex flex-col space-y-2">
+                <span>You need to create an admin user to get started.</span>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCreateAdmin}
+                  className="mt-2"
+                >
+                  Create default admin user
+                </Button>
               </AlertDescription>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => setShowSupabaseTip(false)}
-              >
-                Got it
-              </Button>
+            </Alert>
+          </CardContent>
+        )}
+        
+        {adminCreated && (
+          <CardContent className="pt-0">
+            <Alert className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Admin Created!</AlertTitle>
+              <AlertDescription>
+                <p>Admin user created successfully.</p>
+                <p className="font-medium">Email: admin@querytoadmit.com</p>
+                <p className="font-medium">Password: Admin@123</p>
+              </AlertDescription>
             </Alert>
           </CardContent>
         )}
@@ -112,8 +119,6 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
-                disabled={authLoading || isLoggingIn || user !== null}
               />
             </div>
             <div className="space-y-2">
@@ -134,8 +139,6 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
-                  disabled={authLoading || isLoggingIn || user !== null}
                 />
                 <Button
                   type="button"
@@ -143,7 +146,6 @@ const LoginPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={authLoading || isLoggingIn || user !== null}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -154,9 +156,9 @@ const LoginPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={authLoading || isLoggingIn || !isConfigured || user !== null}
+              disabled={loading || !isConfigured}
             >
-              {isLoggingIn ? "Logging in..." : (user ? "Redirecting..." : "Login")}
+              {loading ? "Logging in..." : "Login"}
             </Button>
             <div className="text-center text-sm">
               Don't have an account?{" "}

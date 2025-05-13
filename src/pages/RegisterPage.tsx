@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Eye, EyeOff, AlertTriangle, Info } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -20,23 +20,8 @@ const RegisterPage = () => {
     role: "student" as const,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const { user, register, loading: authLoading, isConfigured } = useAuth();
+  const { register, loading, isConfigured } = useAuth();
   const navigate = useNavigate();
-  const [registering, setRegistering] = useState(false);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      // Redirect based on user role
-      if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (user.role === "counselor") {
-        navigate("/counselor/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
-    }
-  }, [user, navigate]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -47,18 +32,11 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
-
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    
-    setRegistering(true);
 
     const success = await register(
       formData.name,
@@ -66,14 +44,9 @@ const RegisterPage = () => {
       formData.password,
       formData.role
     );
-    
-    setRegistering(false);
 
     if (success) {
-      toast.success("Registration successful! Redirecting to login...");
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      navigate("/login");
     }
   };
 
@@ -93,18 +66,12 @@ const RegisterPage = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration Error</AlertTitle>
               <AlertDescription>
-                Supabase is not properly configured. Please check your .env file and ensure the environment variables are set correctly.
+                Supabase is not properly configured. Please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+                environment variables.
               </AlertDescription>
             </Alert>
           </CardContent>
         )}
-        
-        <Alert className="mx-4 mb-4">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Default admin account: admin@querytoadmit.com
-          </AlertDescription>
-        </Alert>
         
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -117,7 +84,6 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                disabled={authLoading || registering || user !== null}
               />
             </div>
             <div className="space-y-2">
@@ -130,7 +96,6 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                disabled={authLoading || registering || user !== null}
               />
             </div>
             <div className="space-y-2">
@@ -144,7 +109,6 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  disabled={authLoading || registering || user !== null}
                 />
                 <Button
                   type="button"
@@ -152,7 +116,6 @@ const RegisterPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={authLoading || registering || user !== null}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -168,7 +131,6 @@ const RegisterPage = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                disabled={authLoading || registering || user !== null}
               />
             </div>
             <div className="space-y-2">
@@ -180,7 +142,6 @@ const RegisterPage = () => {
                   setFormData((prev) => ({ ...prev, role: value as any }))
                 }
                 className="flex flex-col gap-2"
-                disabled={authLoading || registering || user !== null}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="student" id="student" />
@@ -197,9 +158,9 @@ const RegisterPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={authLoading || registering || !isConfigured || user !== null}
+              disabled={loading || !isConfigured}
             >
-              {registering ? "Registering..." : (user ? "Redirecting..." : "Register")}
+              {loading ? "Registering..." : "Register"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
