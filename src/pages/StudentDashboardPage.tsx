@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchEnquiries, fetchEnrollments, fetchPayments } from "@/lib/api";
 import { Enquiry, Enrollment, Payment } from "@/lib/types";
 import { ChevronRight, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 const StudentDashboardPage = () => {
   const { user } = useAuth();
@@ -43,12 +43,35 @@ const StudentDashboardPage = () => {
           contact: item.phone,
           course: item.subject,
           message: item.message,
-          status: item.status,
+          status: item.status as "pending" | "responded" | "closed",
           createdAt: item.created_at
         }));
         
         setEnquiries(formattedEnquiries);
-        setEnrollments(enrollmentsData);
+        
+        // Transform enrollments data to match the Enrollment type
+        const formattedEnrollments = enrollmentsData.map(item => ({
+          id: item.id,
+          studentId: item.user_id,
+          studentName: user.name || '',
+          course: item.courses?.name || '',
+          personalInfo: {
+            dateOfBirth: "",
+            gender: "",
+            address: user.address || "",
+            city: "",
+            state: "",
+            zipCode: "",
+            country: "",
+            phone: user.phone || "",
+          },
+          documents: [],
+          status: item.status as "submitted" | "under_review" | "approved" | "rejected",
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+        
+        setEnrollments(formattedEnrollments);
         setPayments(paymentsData);
         
         // Mock notification data for now
@@ -74,11 +97,7 @@ const StudentDashboardPage = () => {
         
       } catch (error) {
         console.error("Failed to load data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to load data. Please try again.");
       } finally {
         setIsLoading(false);
       }

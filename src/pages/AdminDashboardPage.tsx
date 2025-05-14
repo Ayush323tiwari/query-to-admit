@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Filter, UserPlus, CheckCircle, XCircle, Clock } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { fetchAllUsers, fetchEnquiries, updateEnquiry, updateUserRole } from "@/lib/api";
-import { User, Enquiry } from "@/lib/types";
+import { User, Enquiry, UserRole, EnquiryStatus } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -38,7 +37,6 @@ const AdminDashboardPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,8 +49,19 @@ const AdminDashboardPage = () => {
           fetchEnquiries()
         ]);
         
-        // Format data if needed
-        const formattedEnquiries = enquiriesData.map(item => ({
+        // Format user data to ensure role is of type UserRole
+        const formattedUsers: User[] = usersData.map(item => ({
+          id: item.id,
+          name: item.name,
+          email: item.email,
+          role: item.role as UserRole, // Type cast to UserRole
+          avatar: item.avatar_url,
+          phone: item.phone,
+          address: item.address
+        }));
+        
+        // Format enquiry data to ensure status is of type EnquiryStatus
+        const formattedEnquiries: Enquiry[] = enquiriesData.map(item => ({
           id: item.id,
           studentId: item.user_id,
           studentName: item.name,
@@ -60,28 +69,24 @@ const AdminDashboardPage = () => {
           contact: item.phone,
           course: item.subject,
           message: item.message,
-          status: item.status,
+          status: item.status as EnquiryStatus, // Type cast to EnquiryStatus
           createdAt: item.created_at
         }));
         
-        setUsers(usersData);
+        setUsers(formattedUsers);
         setEnquiries(formattedEnquiries);
       } catch (error) {
         console.error("Failed to load data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to load data. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [toast]);
+  }, []);
 
-  const handleUpdateUserRole = async (userId: string, role: string) => {
+  const handleUpdateUserRole = async (userId: string, role: UserRole) => {
     try {
       await updateUserRole(userId, role);
       
@@ -90,21 +95,14 @@ const AdminDashboardPage = () => {
         user.id === userId ? { ...user, role } : user
       ));
       
-      toast({
-        title: "Success",
-        description: "User role updated successfully.",
-      });
+      toast.success("User role updated successfully.");
     } catch (error) {
       console.error("Failed to update user role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update user role. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to update user role. Please try again.");
     }
   };
 
-  const handleUpdateEnquiryStatus = async (enquiryId: string, status: string) => {
+  const handleUpdateEnquiryStatus = async (enquiryId: string, status: EnquiryStatus) => {
     try {
       await updateEnquiry(enquiryId, { status } as Partial<Enquiry>);
       
@@ -113,17 +111,10 @@ const AdminDashboardPage = () => {
         enquiry.id === enquiryId ? { ...enquiry, status } : enquiry
       ));
       
-      toast({
-        title: "Success",
-        description: "Enquiry status updated successfully.",
-      });
+      toast.success("Enquiry status updated successfully.");
     } catch (error) {
       console.error("Failed to update enquiry status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update enquiry status. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to update enquiry status. Please try again.");
     }
   };
 
@@ -156,13 +147,12 @@ const AdminDashboardPage = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: EnquiryStatus) => {
     let color = "bg-gray-400";
     let icon = <Clock className="w-3 h-3" />;
     
     switch (status) {
       case "pending":
-      case "new":
         color = "bg-yellow-400";
         icon = <Clock className="w-3 h-3" />;
         break;
@@ -173,10 +163,6 @@ const AdminDashboardPage = () => {
       case "closed":
         color = "bg-green-400";
         icon = <CheckCircle className="w-3 h-3" />;
-        break;
-      case "rejected":
-        color = "bg-red-400";
-        icon = <XCircle className="w-3 h-3" />;
         break;
     }
 
@@ -233,7 +219,7 @@ const AdminDashboardPage = () => {
             <div className="text-3xl font-bold">{enquiries.length}</div>
             <div className="flex mt-2 text-xs text-muted-foreground">
               <div className="mr-4">
-                <span className="font-medium">New:</span> {enquiries.filter(e => e.status === 'new' || e.status === 'pending').length}
+                <span className="font-medium">New:</span> {enquiries.filter(e => e.status === 'pending').length}
               </div>
               <div className="mr-4">
                 <span className="font-medium">Responded:</span> {enquiries.filter(e => e.status === 'responded').length}
@@ -391,7 +377,6 @@ const AdminDashboardPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="responded">Responded</SelectItem>
                     <SelectItem value="closed">Closed</SelectItem>
@@ -442,8 +427,8 @@ const AdminDashboardPage = () => {
                                 <DropdownMenuItem onClick={() => handleUpdateEnquiryStatus(enquiry.id, "closed")}>
                                   Mark as Closed
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateEnquiryStatus(enquiry.id, "new")}>
-                                  Mark as New
+                                <DropdownMenuItem onClick={() => handleUpdateEnquiryStatus(enquiry.id, "pending")}>
+                                  Mark as Pending
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

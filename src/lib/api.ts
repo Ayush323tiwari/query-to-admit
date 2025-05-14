@@ -1,7 +1,6 @@
-
 import { supabase } from './supabase';
-import { Enquiry, Enrollment, Payment, Course, User, EnquiryStatus } from './types';
-import { toast } from '@/components/ui/use-toast';
+import { Enquiry, Enrollment, Payment, Course, User, EnquiryStatus, UserRole } from './types';
+import { toast } from '@/hooks/use-toast';
 
 // User related API calls
 export const fetchUserProfile = async (userId: string) => {
@@ -124,25 +123,16 @@ export const fetchEnrollments = async (userId?: string, role?: string) => {
   if (error) throw error;
   
   // Format the data to match our Enrollment type
-  return data.map(enrollment => ({
-    id: enrollment.id,
-    studentId: enrollment.user_id,
-    studentName: '', // Need to fetch from users table separately if needed
-    course: enrollment.courses?.name || '',
-    status: enrollment.status,
-    createdAt: enrollment.created_at,
-    updatedAt: enrollment.updated_at,
-    // Add other fields as needed
-  }));
+  return data;
 };
 
 export const createEnrollment = async (enrollment: Partial<Enrollment>) => {
   // Map our Enrollment type to Supabase table structure
   const supabaseEnrollment = {
     user_id: enrollment.studentId,
-    course_id: enrollment.courseId, // You'll need to add this field to your Enrollment type
+    course_id: enrollment.course, // Changed from courseId to course to match the type
     enrollment_date: new Date().toISOString(),
-    status: 'pending'
+    status: 'submitted'
   };
 
   const { data, error } = await supabase
@@ -247,7 +237,7 @@ export const fetchAllUsers = async () => {
   return data;
 };
 
-export const updateUserRole = async (userId: string, role: string) => {
+export const updateUserRole = async (userId: string, role: UserRole) => {
   const { data, error } = await supabase
     .from('users')
     .update({ role })
