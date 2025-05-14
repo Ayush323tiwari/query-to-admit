@@ -1,6 +1,7 @@
 
 import { supabase } from './supabase';
 import { Enquiry, Enrollment, Payment, Course, User, EnquiryStatus } from './types';
+import { toast } from '@/components/ui/use-toast';
 
 // User related API calls
 export const fetchUserProfile = async (userId: string) => {
@@ -27,10 +28,11 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   const { data, error } = await supabase
     .from('users')
     .update(supabaseUpdates)
-    .eq('id', userId);
+    .eq('id', userId)
+    .select();
 
   if (error) throw error;
-  return data;
+  return data[0];
 };
 
 // Enquiry related API calls
@@ -39,55 +41,113 @@ export const fetchEnquiries = async (userId?: string, role?: string) => {
   
   // If student role, only show their enquiries
   if (role === 'student' && userId) {
-    query = query.eq('studentId', userId);
+    query = query.eq('user_id', userId);
   }
   
   // Order by created date
-  query = query.order('createdAt', { ascending: false });
+  query = query.order('created_at', { ascending: false });
   
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching enquiries:", error);
+    throw error;
+  }
   return data;
 };
 
 export const createEnquiry = async (enquiry: Partial<Enquiry>) => {
+  // Map our Enquiry type to the Supabase table structure
+  const supabaseEnquiry = {
+    user_id: enquiry.studentId,
+    name: enquiry.studentName,
+    email: enquiry.email,
+    phone: enquiry.contact,
+    subject: enquiry.course,
+    message: enquiry.message,
+    status: enquiry.status || 'new'
+  };
+
   const { data, error } = await supabase
     .from('enquiries')
-    .insert([enquiry])
+    .insert([supabaseEnquiry])
+    .select();
+
+  if (error) throw error;
+  
+  // Format the returned data to match our app's Enquiry type
+  return {
+    id: data[0].id,
+    studentId: data[0].user_id,
+    studentName: data[0].name,
+    email: data[0].email,
+    contact: data[0].phone,
+    course: data[0].subject,
+    message: data[0].message,
+    status: data[0].status as EnquiryStatus,
+    createdAt: data[0].created_at
+  } as Enquiry;
+};
+
+export const updateEnquiry = async (id: string, updates: Partial<Enquiry>) => {
+  // Map our Enquiry type updates to Supabase table structure
+  const supabaseUpdates: Record<string, any> = {};
+  
+  if (updates.status) supabaseUpdates.status = updates.status;
+  if (updates.message) supabaseUpdates.message = updates.message;
+
+  const { data, error } = await supabase
+    .from('enquiries')
+    .update(supabaseUpdates)
+    .eq('id', id)
     .select();
 
   if (error) throw error;
   return data[0];
 };
 
-export const updateEnquiry = async (id: string, updates: Partial<Enquiry>) => {
-  const { data, error } = await supabase
-    .from('enquiries')
-    .update(updates)
-    .eq('id', id);
-
-  if (error) throw error;
-  return data;
-};
-
 // Enrollment related API calls
 export const fetchEnrollments = async (userId?: string, role?: string) => {
-  let query = supabase.from('enrollments').select('*');
+  // Join enrollments with courses to get course names
+  let query = supabase
+    .from('enrollments')
+    .select(`
+      *,
+      courses:course_id (name)
+    `);
   
   // If student role, only show their enrollments
   if (role === 'student' && userId) {
-    query = query.eq('studentId', userId);
+    query = query.eq('user_id', userId);
   }
   
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  
+  // Format the data to match our Enrollment type
+  return data.map(enrollment => ({
+    id: enrollment.id,
+    studentId: enrollment.user_id,
+    studentName: '', // Need to fetch from users table separately if needed
+    course: enrollment.courses?.name || '',
+    status: enrollment.status,
+    createdAt: enrollment.created_at,
+    updatedAt: enrollment.updated_at,
+    // Add other fields as needed
+  }));
 };
 
 export const createEnrollment = async (enrollment: Partial<Enrollment>) => {
+  // Map our Enrollment type to Supabase table structure
+  const supabaseEnrollment = {
+    user_id: enrollment.studentId,
+    course_id: enrollment.courseId, // You'll need to add this field to your Enrollment type
+    enrollment_date: new Date().toISOString(),
+    status: 'pending'
+  };
+
   const { data, error } = await supabase
     .from('enrollments')
-    .insert([enrollment])
+    .insert([supabaseEnrollment])
     .select();
 
   if (error) throw error;
@@ -95,13 +155,20 @@ export const createEnrollment = async (enrollment: Partial<Enrollment>) => {
 };
 
 export const updateEnrollment = async (id: string, updates: Partial<Enrollment>) => {
+  // Map our Enrollment type updates to Supabase table structure
+  const supabaseUpdates: Record<string, any> = {};
+  
+  if (updates.status) supabaseUpdates.status = updates.status;
+  // Add other fields as needed
+
   const { data, error } = await supabase
     .from('enrollments')
-    .update(updates)
-    .eq('id', id);
+    .update(supabaseUpdates)
+    .eq('id', id)
+    .select();
 
   if (error) throw error;
-  return data;
+  return data[0];
 };
 
 // Payment related API calls
@@ -110,18 +177,41 @@ export const fetchPayments = async (userId?: string, role?: string) => {
   
   // If student role, only show their payments
   if (role === 'student' && userId) {
-    query = query.eq('studentId', userId);
+    query = query.eq('user_id', userId);
   }
   
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  
+  // Format the data to match our Payment type
+  return data.map(payment => ({
+    id: payment.id,
+    studentId: payment.user_id,
+    studentName: '', // Need to fetch from users table separately if needed
+    enrollmentId: payment.enrollment_id,
+    amount: payment.amount,
+    method: payment.payment_method,
+    status: payment.status,
+    createdAt: payment.created_at,
+    updatedAt: payment.updated_at,
+    receiptUrl: payment.transaction_id // Using transaction_id field for receipt URL
+  }));
 };
 
 export const createPayment = async (payment: Partial<Payment>) => {
+  // Map our Payment type to Supabase table structure
+  const supabasePayment = {
+    user_id: payment.studentId,
+    enrollment_id: payment.enrollmentId,
+    amount: payment.amount,
+    payment_method: payment.method,
+    status: 'pending',
+    transaction_id: payment.receiptUrl || null
+  };
+
   const { data, error } = await supabase
     .from('payments')
-    .insert([payment])
+    .insert([supabasePayment])
     .select();
 
   if (error) throw error;
@@ -135,7 +225,37 @@ export const fetchCourses = async () => {
     .select('*');
 
   if (error) throw error;
+  
+  // Format the data to match our Course type
+  return data.map(course => ({
+    id: course.id,
+    name: course.name,
+    shortDescription: course.description || '',
+    duration: course.duration,
+    fee: course.fees
+  }));
+};
+
+// Admin API calls
+export const fetchAllUsers = async () => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
   return data;
+};
+
+export const updateUserRole = async (userId: string, role: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ role })
+    .eq('id', userId)
+    .select();
+
+  if (error) throw error;
+  return data[0];
 };
 
 // Storage operations

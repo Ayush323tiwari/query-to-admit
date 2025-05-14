@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { fetchEnquiries, createEnquiry } from "@/lib/api";
@@ -36,7 +37,22 @@ const StudentEnquiriesPage = () => {
       try {
         setIsLoading(true);
         const data = await fetchEnquiries(user.id, user.role);
-        setEnquiries(data);
+        console.log("Fetched enquiries:", data);
+        
+        // Transform data to match our Enquiry type
+        const formattedEnquiries = data.map(item => ({
+          id: item.id,
+          studentId: item.user_id,
+          studentName: item.name,
+          email: item.email,
+          contact: item.phone,
+          course: item.subject,
+          message: item.message,
+          status: item.status as EnquiryStatus,
+          createdAt: item.created_at
+        }));
+        
+        setEnquiries(formattedEnquiries);
       } catch (error) {
         console.error("Failed to load enquiries:", error);
         toast({
@@ -50,7 +66,7 @@ const StudentEnquiriesPage = () => {
     };
 
     loadEnquiries();
-  }, [user]);
+  }, [user, toast]);
 
   const handleCreateEnquiry = async (data: any) => {
     if (!user) return;
@@ -94,6 +110,7 @@ const StudentEnquiriesPage = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
+      case "new":
         return "bg-yellow-500";
       case "responded":
         return "bg-blue-500";
