@@ -123,7 +123,8 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function customToast({ ...props }: Toast) {
+// Renamed this function to createToast to avoid duplicate identifier
+function createToast({ ...props }: Toast) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -167,12 +168,12 @@ function useToast() {
 
   return {
     ...state,
-    toast: customToast,
+    toast: createToast,
     dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   };
 }
 
-// Define our toast types
+// Define the sonner toast wrapper
 const toast = {
   ...sonnerToast,
   success: (message: string) => sonnerToast.success(message),
@@ -181,5 +182,5 @@ const toast = {
   warning: (message: string) => sonnerToast.warning(message),
 };
 
-// Export the functions and objects
-export { useToast, customToast, toast };
+// Export everything with distinct names
+export { useToast, createToast as customToast, toast };
