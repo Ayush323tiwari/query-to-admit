@@ -123,7 +123,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ ...props }: Toast) {
+function customToast({ ...props }: Toast) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -167,17 +167,19 @@ function useToast() {
 
   return {
     ...state,
-    toast,
+    toast: customToast,
     dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   };
 }
 
-// Export both sonner toast and custom useToast
-export { useToast, toast as customToast };
-export const toast = {
+// Define our toast types
+const toast = {
   ...sonnerToast,
   success: (message: string) => sonnerToast.success(message),
   error: (message: string) => sonnerToast.error(message),
   info: (message: string) => sonnerToast.info(message),
   warning: (message: string) => sonnerToast.warning(message),
 };
+
+// Export the functions and objects
+export { useToast, customToast, toast };
