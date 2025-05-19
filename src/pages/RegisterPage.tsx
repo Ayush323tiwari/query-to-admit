@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, AlertTriangle } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const RegisterPage = () => {
@@ -20,6 +20,7 @@ const RegisterPage = () => {
     role: "student" as const,
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, loading, isConfigured } = useAuth();
   const navigate = useNavigate();
 
@@ -32,21 +33,31 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
 
-    const success = await register(
-      formData.name,
-      formData.email,
-      formData.password,
-      formData.role
-    );
+    try {
+      setIsSubmitting(true);
+      const success = await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.role
+      );
 
-    if (success) {
-      navigate("/login");
+      if (success) {
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -84,6 +95,7 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -96,6 +108,7 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -109,6 +122,7 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                 />
                 <Button
                   type="button"
@@ -116,6 +130,7 @@ const RegisterPage = () => {
                   size="icon"
                   className="absolute right-0 top-0"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isSubmitting}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
@@ -131,6 +146,7 @@ const RegisterPage = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -144,11 +160,11 @@ const RegisterPage = () => {
                 className="flex flex-col gap-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="student" id="student" />
+                  <RadioGroupItem value="student" id="student" disabled={isSubmitting} />
                   <Label htmlFor="student">Student</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="counselor" id="counselor" />
+                  <RadioGroupItem value="counselor" id="counselor" disabled={isSubmitting} />
                   <Label htmlFor="counselor">Counselor</Label>
                 </div>
               </RadioGroup>
@@ -158,9 +174,9 @@ const RegisterPage = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading || !isConfigured}
+              disabled={isSubmitting || loading || !isConfigured}
             >
-              {loading ? "Registering..." : "Register"}
+              {isSubmitting ? "Registering..." : "Register"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}

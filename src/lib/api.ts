@@ -130,7 +130,7 @@ export const createEnrollment = async (enrollment: Partial<Enrollment>) => {
   // Map our Enrollment type to Supabase table structure
   const supabaseEnrollment = {
     user_id: enrollment.studentId,
-    course_id: enrollment.course, // Changed from courseId to course to match the type
+    course_id: enrollment.course, // Using course instead of courseId to match the Enrollment type
     enrollment_date: new Date().toISOString(),
     status: 'submitted'
   };
