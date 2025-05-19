@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { fetchUserProfile, updateUserProfile } from "@/lib/api";
-import { uploadDocument } from "@/lib/api";
+import { fetchUserProfile, updateUserProfile, uploadDocument } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";

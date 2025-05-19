@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { fetchEnquiries, createEnquiry } from "@/lib/api";
+import { fetchEnquiries, createEnquiry } from "@/lib/api/enquiries";
 import { Enquiry, EnquiryStatus } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
